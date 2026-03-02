@@ -3,7 +3,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import SimpleBar from 'simplebar-react';
 import { AlignLeft, Bell, Calendar, CheckSquare, Clock, CreditCard, Inbox, Plus, Search, Settings, Tag } from 'react-feather';
-import { Button, Container, Dropdown, Form, InputGroup, Nav, Navbar } from 'react-bootstrap';
+import { Button, Container, Dropdown, Form, InputGroup, Nav, Navbar } from "react-bootstrap";
+import { signOut } from "next-auth/react";
 import classNames from 'classnames';
 import { motion } from 'framer-motion';
 import HkBadge from '@/components/@hk-badge/@hk-badge';
@@ -455,7 +456,7 @@ const TopNav = () => {
                                         Terms &amp; Conditions
                                     </Dropdown.Item>
                                     <Dropdown.Item>
-                                        Help &amp; Support
+                                        Help &amp; Support</Dropdown.Item><Dropdown.Divider as="div" /><Dropdown.Item onClick={() => signOut({ callbackUrl: "/auth/login" })} className="text-danger">Log Out
                                     </Dropdown.Item>
                                 </Dropdown.Menu>
                             </Dropdown>

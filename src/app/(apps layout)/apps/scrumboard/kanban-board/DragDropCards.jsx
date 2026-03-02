@@ -11,14 +11,28 @@ const DragDropCards = ({
     setCardOrder
 }) => {
 
-    const reorderCards = (source, destination, draggableId) => {
+    const reorderCards = async (source, destination, draggableId) => {
         const newCardOrder = Array.from(cardOrder);
         newCardOrder.splice(source.index, 1);
         newCardOrder.splice(destination.index, 0, draggableId);
         setCardOrder(newCardOrder);
+
+        // Sync API
+        try {
+            await fetch('/api/kanban', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: "UPDATE_BOARD_ORDER",
+                    payload: { boards: newCardOrder.map((id, index) => ({ id, order: index })) }
+                })
+            });
+        } catch (e) {
+            console.error("Failed to sync board order", e);
+        }
     };
 
-    const reorderTasksWithinCard = (
+    const reorderTasksWithinCard = async (
         card,
         sourceIdx,
         destinationIdx,
@@ -34,9 +48,28 @@ const DragDropCards = ({
                 taskIds: newTaskIds
             }
         });
+
+        // Sync API
+        try {
+            await fetch('/api/kanban', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: "UPDATE_TASK_ORDER",
+                    payload: {
+                        taskId: draggableId,
+                        newBoardId: card.id,
+                        newOrder: destinationIdx,
+                        newBoardTasks: newTaskIds.map(id => ({ id }))
+                    }
+                })
+            });
+        } catch (e) {
+            console.error("Failed to sync task order", e);
+        }
     };
 
-    const moveTask = (start, finish, sourceIdx, destinationIdx, draggableId) => {
+    const moveTask = async (start, finish, sourceIdx, destinationIdx, draggableId) => {
         const startTaskIds = Array.from(start.taskIds);
         startTaskIds.splice(sourceIdx, 1);
         const newStart = {
@@ -54,6 +87,26 @@ const DragDropCards = ({
             [newStart.id]: newStart,
             [newFinish.id]: newFinish
         });
+
+        // Sync API
+        try {
+            await fetch('/api/kanban', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: "UPDATE_TASK_ORDER",
+                    payload: {
+                        taskId: draggableId,
+                        newBoardId: finish.id,
+                        newOrder: destinationIdx,
+                        newBoardTasks: finishTaskIds.map(id => ({ id })),
+                        oldBoardTasks: startTaskIds.map(id => ({ id }))
+                    }
+                })
+            });
+        } catch (e) {
+            console.error("Failed to sync task move", e);
+        }
     };
 
     const onDragEnd = (result) => {
@@ -81,59 +134,74 @@ const DragDropCards = ({
                     draggableId
                 );
             } else {
-                moveTask(start, finish, source.index, destination.index, draggableId);
+                moveTask(
+                    start,
+                    finish,
+                    source.index,
+                    destination.index,
+                    draggableId
+                );
             }
         }
     };
 
-    //Rename Board
+
+    //Board Rename
     const boardRename = (cardID, newTitle) => {
-        if (newTitle !== cards[cardID].title) {
-            setCards({
-                ...cards,
-                [cardID]: {
-                    ...cards[cardID],
-                    title: newTitle
-                }
-            });
-        }
-        // setEditing(null);
-    };
+        setCards({ ...cards, [cardID]: { ...cards[cardID], title: newTitle } });
+    }
 
     //Remove Board
     const onRemoveBoard = (cardID) => {
         const newCardOrder = cardOrder.filter((id) => id !== cardID);
         setCardOrder(newCardOrder);
-
-        const cardTaskIds = cards[cardID].taskIds;
-        cardTaskIds.forEach((taskID) => delete tasks[taskID]);
         delete cards[cardID];
         setCards(cards);
-        setTasks(tasks);
     };
 
-    //Remove all task from board
+    //Clear Tasks from a board
     const clearBoard = (cardID) => {
         setCards({ ...cards, [cardID]: { ...cards[cardID], taskIds: [] } });
     };
 
-    //Add New Task on Board
-    const onAddNewTask = (cardID, taskName) => {
-        const newTask = {
-            id: nanoid(),
-            Task_Name: taskName,
-            Footer: true,
-            Task_Counter: "4/8",
-            Task_Discuss: "24",
-            Deadline: "22 Sep, 22"
-        };
-        setTasks({
-            ...tasks,
-            [newTask.id]: newTask
-        });
-        const newTaskIds = Array.from(cards[cardID].taskIds);
-        newTaskIds.push(newTask.id);
-        setCards({ ...cards, [cardID]: { ...cards[cardID], taskIds: newTaskIds } });
+    //Add new task 
+    const onAddNewTask = async (cardID, taskName) => {
+        if (!taskName.trim()) return;
+
+        try {
+            const res = await fetch('/api/kanban', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: "ADD_TASK",
+                    payload: { title: taskName, boardId: cardID, order: cards[cardID].taskIds.length }
+                })
+            });
+            
+            if (res.ok) {
+                const newTaskData = await res.json();
+                const newTask = {
+                    id: newTaskData.id,
+                    Task_Name: newTaskData.title,
+                    Footer: false,
+                };
+                
+                setTasks(prev => ({
+                    ...prev,
+                    [newTask.id]: newTask
+                }));
+                
+                setCards(prevCards => {
+                    const newTaskIds = Array.from(prevCards[cardID].taskIds);
+                    newTaskIds.push(newTask.id);
+                    return { ...prevCards, [cardID]: { ...prevCards[cardID], taskIds: newTaskIds } };
+                });
+            } else {
+                alert("Failed to create task in DB");
+            }
+        } catch (e) {
+            console.error("ADD TASK ERROR", e);
+        }
     };
 
     //Remove a task from a board
@@ -171,7 +239,7 @@ const DragDropCards = ({
                 )}
             </Droppable>
         </DragDropContext>
-    )
-}
+    );
+};
 
-export default DragDropCards
+export default DragDropCards;

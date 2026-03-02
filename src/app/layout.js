@@ -1,6 +1,7 @@
 import { DM_Sans } from 'next/font/google'
 import { GlobalStateProvider } from '@/context/GolobalStateProvider';
 import { ThemeProvider } from '@/layout/theme-provider/theme-provider';
+import AuthProvider from '@/components/AuthProvider';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'react-perfect-scrollbar/dist/css/styles.css';
 import '@/styles/scss/style.scss';
@@ -15,24 +16,22 @@ const dm_sans = DM_Sans({
 
 // metadata
 export const metadata = {
-  title: 'Jampack | A Robust SaaS App Template Built on Next.js',
-  description: 'NextJs based admin dashboard template by hencework',
-  keywords: ['NextJs', 'React NextJs', 'Next.js', 'React template', 'react admin', 'react node', 'react bootstrap', 'responsive web application', 'react webapp', 'multi app demos'],
+  title: 'SantriGresik CRM | Admin Dashboard',
+  description: 'Internal CRM System for SantriGresik.id',
 }
-
 
 export default function RootLayout({ children }) {
 
   return (
     <html lang="en" className={`${dm_sans.variable}`} data-bs-theme="dark">
       <body>
-        <ThemeProvider>
-
-          <GlobalStateProvider>
-            {children}
-          </GlobalStateProvider>
-        </ThemeProvider>
-
+        <AuthProvider>
+            <ThemeProvider>
+            <GlobalStateProvider>
+                {children}
+            </GlobalStateProvider>
+            </ThemeProvider>
+        </AuthProvider>
       </body>
     </html>
   )

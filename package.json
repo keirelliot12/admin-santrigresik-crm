@@ -11,6 +11,7 @@
   "dependencies": {
     "@amcharts/amcharts5": "^5.13.6",
     "@amcharts/amcharts5-geodata": "^5.1.5",
+    "@auth/prisma-adapter": "^2.11.1",
     "@fortawesome/fontawesome-svg-core": "^7.0.0",
     "@fortawesome/free-brands-svg-icons": "^7.0.0",
     "@fortawesome/free-solid-svg-icons": "^7.0.0",
@@ -21,11 +22,13 @@
     "@fullcalendar/react": "^6.1.19",
     "@fullcalendar/timegrid": "^6.1.19",
     "@hello-pangea/dnd": "^18.0.1",
+    "@prisma/client": "^5.11.0",
     "@react-hook/window-size": "^3.1.1",
     "@sweetalert2/theme-bootstrap-4": "^5.0.27",
     "@tinymce/tinymce-react": "^6.3.0",
     "animate.css": "^4.1.1",
     "apexcharts": "^5.3.4",
+    "bcryptjs": "^3.0.3",
     "bootstrap": "^5.3.8",
     "bootstrap-daterangepicker": "^3.1.0",
     "bootstrap-icons": "^1.13.1",
@@ -38,7 +41,9 @@
     "moment": "^2.30.1",
     "nanoid": "^5.1.5",
     "next": "15.5.7",
+    "next-auth": "^4.24.13",
     "next-seo": "^6.8.0",
+    "prisma": "^5.11.0",
     "prop-types": "^15.8.1",
     "react": "^19",
     "react-apexcharts": "^1.7.0",
@@ -62,8 +67,11 @@
     "tabler-icons-react": "^1.56.0"
   },
   "devDependencies": {
+    "@prisma/config": "^7.4.2",
+    "@types/node": "25.3.3",
     "eslint": "^9",
     "eslint-config-next": "15.5.2",
-    "sass": "^1.91.0"
+    "sass": "^1.91.0",
+    "tsx": "^4.21.0"
   }
 }

@@ -6,6 +6,23 @@ import HkBadge from '@/components/@hk-badge/@hk-badge';
 import Image from 'next/image';
 
 const Task = (props) => {
+    
+    // Auto sync Checkbox to backend API
+    const handleToggleStatus = async () => {
+        try {
+            const res = await fetch('/api/todo', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: "TOGGLE_STATUS", payload: { id: props.task.id } })
+            });
+            if (res.ok) {
+                 // Trigger full component reload or manual state sync, but for Jampack UI dragging it out might be easier
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
     return (
 
         <Draggable
@@ -27,8 +44,8 @@ const Task = (props) => {
                             <Form.Check>
                                 <Form.Check.Input
                                     type="checkbox"
-                                // checked={task.checked}
-                                // onChange={() => checkTaskList(data.id, task.id)}
+                                    defaultChecked={props.task.checked}
+                                    onChange={handleToggleStatus}
                                 />
                                 <Form.Check.Label />
                             </Form.Check>
@@ -39,77 +56,54 @@ const Task = (props) => {
                                         <Star />
                                     </span>
                                 </span>
-                                <HkBadge
-                                    indicator
-                                    bg={props.task.indicator}
-                                    className="badge-indicator-xl d-md-inline-block d-none"
-                                />
-                                <span className="todo-text text-dark text-truncate" onClick={props.taskInfo} >
-                                    {/* onClick={showInfo} */}
-                                    {props.task.task_name}
-                                </span>
-                                {
-                                    props.task.priority && <Badge
-                                        size="sm"
-                                        bg="white"
-                                        className={classNames("badge-sm badge-outline badge-wth-indicator badge-wth-icon ms-3 d-lg-inline-block d-none", { "badge-danger": props.task.priority === "High" || props.task.priority === "Urgent" }, { "badge-warning": props.task.priority === "Low" }, { "badge-orange": props.task.priority === "Medium" })}
-                                    >
-                                        <span>
-                                            <i className="badge-dot ri-checkbox-blank-circle-fill" />
-                                            {props.task.priority}
-                                        </span>
-                                    </Badge>
-                                }
                             </div>
+
+                            <span className={classNames("badge-indicator", `badge-indicator-${props.task.indicator}`)}></span>
+                            <span className="todo-text text-dark text-truncate" onClick={props.taskInfo}>{props.task.task_name}</span>
+                            {
+                                props.task.badge &&
+                                props.task.badge.map((b, i) => (
+                                    <Badge bg={b.bg} className="badge-sm ms-3 d-none d-lg-inline-block" key={i}>{b.text}</Badge>
+                                ))
+                            }
                         </div>
-                        <div className="d-flex flex-shrink-0 align-items-center ms-3">
+                        <div className="d-flex align-items-center">
                             {
-                                props.task.task_time.map((ele, i) => (
-                                    <span className={
-                                        classNames("todo-time d-lg-inline-block d-none me-3", (`text-${ele.text}`))}
-                                        key={i}
-                                    >
-                                        {ele.time}
-                                    </span>
+                                props.task.task_time && props.task.task_time.map((t, i) => (
+                                    <HkBadge bg="transparent" className="d-none d-sm-inline-block" text={t.text} key={i}>{t.time}</HkBadge>
                                 ))
                             }
-                            <div className="avatar avatar-xs avatar-rounded d-md-inline-block d-none">
-                                {props.task.img && <Image src={props.task.img} alt="user" className="avatar-img" />}
-
-                                {props.task.init_avt && props.task.init_avt.map((avt, idx) => (
-                                    <div className={classNames("avatar avatar-xs avatar-rounded d-md-inline-block d-none", (`avatar-${avt.bg}`))}
-                                        key={idx}
-                                    >
-                                        <span className="initial-wrap">{avt.text}</span>
-                                    </div>
-                                ))}
+                            <div className="avatar avatar-xs avatar-rounded d-none d-md-inline-block ms-3">
+                                {
+                                    props.task.img && <Image src={props.task.img} alt="user" className="avatar-img" />
+                                }
+                                {
+                                    props.task.avatarBg && <span className={classNames("initial-wrap", `bg-${props.task.avatarBg}`)}>{props.task.init_name}</span>
+                                }
 
                             </div>
-                            {
-                                props.task.badge && props.task.badge.map((bdg, indx) => (
-                                    <HkBadge key={indx} bg={bdg.bg} className="ms-3 d-md-inline-block d-none" >{bdg.text}</HkBadge>
-                                ))
-                            }
                             <Dropdown>
-                                <Dropdown.Toggle variant='flush-light' className="btn-icon btn-rounded flush-soft-hover no-caret">
+                                <Dropdown.Toggle as="a" href="#" className="btn btn-icon btn-flush-dark btn-rounded flush-soft-hover no-caret d-flex align-items-center ms-1">
                                     <span className="icon">
                                         <span className="feather-icon">
                                             <MoreVertical />
                                         </span>
                                     </span>
                                 </Dropdown.Toggle>
-                                <Dropdown.Menu align="end" >
-                                    <Dropdown.Item className="edit-task">Edit Task</Dropdown.Item>
-                                    <Dropdown.Item className="view-task">View Task</Dropdown.Item>
-                                    <Dropdown.Item className="delete-task" onClick={() => props.onRemoveTask(props.task.id, props.cardId)} >Delete Task</Dropdown.Item>
+                                <Dropdown.Menu align="end">
+                                    <Dropdown.Item onClick={props.taskInfo}>View Details</Dropdown.Item>
+                                    <Dropdown.Item>Action</Dropdown.Item>
+                                    <Dropdown.Item>Another action</Dropdown.Item>
+                                    <div className="dropdown-divider"></div>
+                                    <Dropdown.Item className="text-danger">Delete</Dropdown.Item>
                                 </Dropdown.Menu>
                             </Dropdown>
                         </div>
                     </div>
-                    {provided.placeholder}
                 </li>
             )}
         </Draggable>
+
     )
 }
 

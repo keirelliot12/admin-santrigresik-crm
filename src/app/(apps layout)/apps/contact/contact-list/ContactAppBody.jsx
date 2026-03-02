@@ -1,54 +1,115 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import SimpleBar from 'simplebar-react';
-import { Button, Col, Form, Pagination, Row, Table } from 'react-bootstrap';
-import HkDataTable from '@/components/@hk-data-table'
-import { columns, data } from '@/data/contact/contact-list';
-
-
+import { Button, Col, Form, Pagination, Row, Table, Spinner, Alert } from 'react-bootstrap';
+import HkDataTable from '@/components/@hk-data-table';
+import { columns } from '@/data/contact/contact-list';
 
 const ContactAppBody = () => {
-
     const [searchTerm, setSearchTerm] = useState('');
+    const [contacts, setContacts] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    const [newContact, setNewContact] = useState({
+        name: '',
+        email: '',
+        phone: '',
+        company: '',
+        jobTitle: '',
+        status: 'LEAD'
+    });
+
+    const fetchContacts = async () => {
+        try {
+            const res = await fetch('/api/contacts');
+            if (!res.ok) throw new Error('Failed to fetch contacts');
+            const data = await res.json();
+            
+            // Format data to match Jampack's HkDataTable structure
+            const formattedData = data.map(contact => ({
+                id: contact.id,
+                starred: false,
+                name: [{ cstmAvt: contact.name.charAt(0).toUpperCase(), avtBg: "primary", userName: contact.name }],
+                email: contact.email || "-",
+                phone: contact.phone || "-",
+                tags: [{ title: contact.status, bg: contact.status === "LEAD" ? "info" : "success" }],
+                labels: contact.company || contact.jobTitle || "-",
+                dateCreated: new Date(contact.createdAt).toLocaleDateString(),
+                actions: [{ archiveLink: "#", editLink: "#", deleteLink: "#" }]
+            }));
+            
+            setContacts(formattedData);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchContacts();
+    }, []);
+
+    const handleCreateContact = async (e) => {
+        e.preventDefault();
+        try {
+            const res = await fetch('/api/contacts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newContact),
+            });
+            
+            if (res.ok) {
+                // Refresh list and clear form
+                fetchContacts();
+                setNewContact({ name: '', email: '', phone: '', company: '', jobTitle: '', status: 'LEAD' });
+                // Hide form
+                document.getElementById('collapseQuick').classList.remove('show');
+            } else {
+                alert('Failed to create contact');
+            }
+        } catch (err) {
+            console.error(err);
+            alert('An error occurred');
+        }
+    };
 
     return (
         <div className="contact-body">
             <SimpleBar className="nicescroll-bar">
                 <div className="collapse" id="collapseQuick">
                     <div className="quick-access-form-wrap">
-                        <Form className="quick-access-form border">
+                        <Form className="quick-access-form border" onSubmit={handleCreateContact}>
                             <Row className="gx-3">
                                 <Col xxl={10}>
                                     <div className="position-relative">
-                                        <div className="dropify-square">
-                                            <input type="file" className="dropify-1" />
-                                        </div>
                                         <Col md={12}>
                                             <Row className="gx-3">
                                                 <Col lg={4}>
                                                     <Form.Group className="mb-3">
-                                                        <Form.Control placeholder="First name*" type="text" />
+                                                        <Form.Control required placeholder="Full name*" type="text" value={newContact.name} onChange={e => setNewContact({...newContact, name: e.target.value})} />
                                                     </Form.Group>
                                                     <Form.Group className="mb-3">
-                                                        <Form.Control placeholder="Last name*" type="text" />
-                                                    </Form.Group>
-                                                </Col>
-                                                <Col lg={4}>
-                                                    <Form.Group className="mb-3">
-                                                        <Form.Control placeholder="Email Id*" type="text" />
-                                                    </Form.Group>
-                                                    <Form.Group className="mb-3">
-                                                        <Form.Control placeholder="Phone" type="text" />
+                                                        <Form.Control placeholder="Job Title" type="text" value={newContact.jobTitle} onChange={e => setNewContact({...newContact, jobTitle: e.target.value})} />
                                                     </Form.Group>
                                                 </Col>
                                                 <Col lg={4}>
                                                     <Form.Group className="mb-3">
-                                                        <Form.Control placeholder="Department" type="text" />
+                                                        <Form.Control required placeholder="Email Id*" type="email" value={newContact.email} onChange={e => setNewContact({...newContact, email: e.target.value})} />
                                                     </Form.Group>
                                                     <Form.Group className="mb-3">
-                                                        <Form.Select id="input_tags" multiple >
-                                                            <option value={1}>Collaborator</option>
-                                                            <option value={2} >Designer</option>
-                                                            <option value={3}>Developer</option>
+                                                        <Form.Control placeholder="Phone" type="text" value={newContact.phone} onChange={e => setNewContact({...newContact, phone: e.target.value})} />
+                                                    </Form.Group>
+                                                </Col>
+                                                <Col lg={4}>
+                                                    <Form.Group className="mb-3">
+                                                        <Form.Control placeholder="Company" type="text" value={newContact.company} onChange={e => setNewContact({...newContact, company: e.target.value})} />
+                                                    </Form.Group>
+                                                    <Form.Group className="mb-3">
+                                                        <Form.Select value={newContact.status} onChange={e => setNewContact({...newContact, status: e.target.value})}>
+                                                            <option value="LEAD">Lead</option>
+                                                            <option value="CUSTOMER">Customer</option>
+                                                            <option value="ARCHIVED">Archived</option>
                                                         </Form.Select>
                                                     </Form.Group>
                                                 </Col>
@@ -58,100 +119,39 @@ const ContactAppBody = () => {
                                 </Col>
                                 <Col xxl={2}>
                                     <Form.Group className="mb-3">
-                                        <Button variant="primary" data-bs-toggle="collapse" data-bs-target="#collapseExample" aria-expanded="false" className="btn-block">Create New
-                                        </Button>
+                                        <Button variant="primary" type="submit" className="btn-block">Create New</Button>
                                     </Form.Group>
                                     <Form.Group className="mb-3">
-                                        <Button variant="secondary" data-bs-toggle="collapse" disabled data-bs-target="#collapseExample" aria-expanded="false" className="btn-block">Discard
-                                        </Button>
+                                        <Button variant="secondary" className="btn-block btn-ghost" data-bs-toggle="collapse" href="#collapseQuick" aria-expanded="false">Discard</Button>
                                     </Form.Group>
                                 </Col>
                             </Row>
                         </Form>
                     </div>
                 </div>
+                
                 <div className="contact-list-view">
-
-                    <Row className="mb-3" >
-                        <Col xs={7} mb={3}>
-                            <div className="contact-toolbar-left">
-                                <Form.Group className="d-xxl-flex d-none align-items-center mb-0">
-                                    <Form.Select size='sm' className="w-120p">
-                                        <option value={1}>Bulk actions</option>
-                                        <option value={2}>Edit</option>
-                                        <option value={3}>Move to trash</option>
-                                    </Form.Select>
-                                    <Button size="sm" variant="light" className="ms-2">Apply</Button>
-                                </Form.Group>
-                                <Form.Group className="d-xxl-flex d-none align-items-center mb-0">
-                                    <label className="flex-shrink-0 mb-0 me-2">Sort by:</label>
-                                    <Form.Select size='sm' className="w-130p">
-                                        <option value={1}>Date Created</option>
-                                        <option value={2}>Date Edited</option>
-                                        <option value={3}>Frequent Contacts</option>
-                                        <option value={4}>Recently Added</option>
-                                    </Form.Select>
-                                </Form.Group>
-                                <Form.Select size="sm" className="d-flex align-items-center w-130p">
-                                    <option value={1}>Export to CSV</option>
-                                    <option value={2}>Export to PDF</option>
-                                    <option value={3}>Send Message</option>
-                                    <option value={4}>Delegate Access</option>
-                                </Form.Select>
-                            </div>
-                        </Col>
-                        <Col xs={5} mb={3}>
-                            <div className="contact-toolbar-right">
-                                <div className="dataTables_filter">
-                                    <Form.Label>
-                                        <Form.Control
-                                            size="sm"
-                                            type="search"
-                                            placeholder="Search"
-                                            value={searchTerm}
-                                            onChange={e => setSearchTerm(e.target.value)}
-                                        />
-                                    </Form.Label>
-                                </div>
-                                <div className="dataTables_paginate paging_simple_numbers" id="datable_1_paginate">
-                                    <ul className="pagination custom-pagination pagination-simple m-0">
-                                        <li className="paginate_button page-item previous disabled" id="datable_1_previous">
-                                            <a href="#some" data-dt-idx={0} tabIndex={0} className="page-link">
-                                                <i className="ri-arrow-left-s-line" />
-                                            </a>
-                                        </li>
-                                        <li className="paginate_button page-item active">
-                                            <a href="#some" data-dt-idx={1} tabIndex={0} className="page-link">1</a>
-                                        </li>
-                                        <li className="paginate_button page-item ">
-                                            <a href="#some" data-dt-idx={2} tabIndex={0} className="page-link">2</a>
-                                        </li>
-                                        <li className="paginate_button page-item next" id="datable_1_next">
-                                            <a href="#some" data-dt-idx={3} tabIndex={0} className="page-link">
-                                                <i className="ri-arrow-right-s-line" />
-                                            </a>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </Col>
-                    </Row>
-
-                    <HkDataTable
-                        column={columns}
-                        rowData={data}
-                        rowsPerPage={10}
-                        rowSelection={true}
-                        markStarred={true}
-                        searchQuery={searchTerm}
-                        classes="nowrap w-100 mb-5"
-                        responsive
-                    />
-
+                    {loading ? (
+                        <div className="text-center p-5">
+                            <Spinner animation="border" variant="primary" />
+                            <p className="mt-3">Loading Contacts...</p>
+                        </div>
+                    ) : error ? (
+                        <Alert variant="danger" className="m-4">{error}</Alert>
+                    ) : (
+                        <HkDataTable
+                            column={columns}
+                            rowData={contacts}
+                            rowSelection={true}
+                            rowsPerPage={10}
+                            classes="nowrap w-100 mb-5"
+                            responsive
+                        />
+                    )}
                 </div>
-            </SimpleBar >
-        </div >
+            </SimpleBar>
+        </div>
     )
 }
 
-export default ContactAppBody
+export default ContactAppBody;

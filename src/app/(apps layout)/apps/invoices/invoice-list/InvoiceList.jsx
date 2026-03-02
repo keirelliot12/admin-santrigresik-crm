@@ -1,11 +1,43 @@
-import { useState } from 'react';
-import { Col, Form, Row } from 'react-bootstrap';
+import { useState, useEffect } from 'react';
+import { Col, Form, Row, Spinner, Alert } from 'react-bootstrap';
 import HkDataTable from '@/components/@hk-data-table'
-import { columns, data } from '@/data/invoices/invoice-table';
+import { columns } from '@/data/invoices/invoice-table';
 
 const InvoiceList = () => {
 
     const [searchTerm, setSearchTerm] = useState('');
+    const [invoices, setInvoices] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        const fetchInvoices = async () => {
+            try {
+                const res = await fetch('/api/invoices');
+                if (!res.ok) throw new Error('Failed to fetch invoices');
+                const data = await res.json();
+                
+                const formattedInvoices = data.map(inv => ({
+                    id: inv.id,
+                    invoice: inv.invoiceNumber,
+                    date: new Date(inv.date).toLocaleDateString(),
+                    reciplent: [{ title: inv.contact?.name || "No Contact", id: inv.contact?.email || "-" }],
+                    status: [{ title: inv.status, bg: inv.status === "PAID" ? "success" : (inv.status === "DRAFT" ? "secondary" : "warning"), text: inv.dueDate ? `Due ${new Date(inv.dueDate).toLocaleDateString()}` : "" }],
+                    activity: "-",
+                    amount: `${inv.currency} ${inv.amount.toLocaleString()}`,
+                    actions: [{ editLink: "#" }]
+                }));
+
+                setInvoices(formattedInvoices);
+            } catch (err) {
+                setError(err.message);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchInvoices();
+    }, []);
 
     return (
         <>
@@ -33,36 +65,29 @@ const InvoiceList = () => {
                                 />
                             </label>
                         </div>
-                        <div className="dataTables_paginate paging_simple_numbers" id="datable_1_paginate">
-                            <ul className="pagination custom-pagination pagination-simple m-0">
-                                <li className="paginate_button page-item previous disabled" id="datable_1_previous">
-                                    <a href="#" className="page-link">
-                                        <i className="ri-arrow-left-s-line" />
-                                    </a>
-                                </li>
-                                <li className="paginate_button page-item next disabled" id="datable_1_next">
-                                    <a href="#" className="page-link" >
-                                        <i className="ri-arrow-right-s-line" />
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
                     </div>
                 </Col>
             </Row>
-
-            <HkDataTable
-                column={columns}
-                rowData={data}
-                rowSelection={true}
-                rowsPerPage={10}
-                searchQuery={searchTerm}
-                classes="nowrap w-100 mb-5"
-                responsive
-            />
-
+            
+            {loading ? (
+                <div className="text-center p-5">
+                    <Spinner animation="border" variant="primary" />
+                </div>
+            ) : error ? (
+                <Alert variant="danger">{error}</Alert>
+            ) : (
+                <HkDataTable
+                    column={columns}
+                    rowData={invoices}
+                    rowSelection={true}
+                    rowsPerPage={10}
+                    searchQuery={searchTerm}
+                    classes="nowrap w-100 mb-5"
+                    responsive
+                />
+            )}
         </>
     )
 }
 
-export default InvoiceList
+export default InvoiceList;

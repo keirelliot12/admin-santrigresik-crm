@@ -5,7 +5,7 @@ import { ChevronDown, ChevronUp, Sliders } from 'react-feather';
 import HkTooltip from '@/components/@hk-tooltip/HkTooltip';
 import { useGlobalStateContext } from '@/context/GolobalStateProvider';
 
-const Header = ({ toggleSidebar, show, handleSettings }) => {
+const Header = ({ toggleSidebar, show, handleSettings, handleSave }) => {
 
     const { states, dispatch } = useGlobalStateContext();
 
@@ -38,7 +38,7 @@ const Header = ({ toggleSidebar, show, handleSettings }) => {
                     </span>
                 </Button>
                 <Button as={Link} href="invoice-preview" variant="outline-secondary" className="flex-shrink-0 d-md-inline-block d-none">Preview</Button>
-                <Button as="a" variant="primary" href="#" className="mx-2 d-sm-inline-block d-none">save</Button>
+                <Button variant="primary" className="mx-2 d-sm-inline-block d-none" onClick={handleSave}>Save</Button>
                 <Button as="a" variant="flush-dark" className="btn-icon btn-rounded flush-soft-hover hk-navbar-togglable d-sm-inline-block d-none" onClick={() => dispatch({ type: "top_nav_toggle" })} >
                     <HkTooltip placement={states.layoutState.topNavCollapse ? "bottom" : "top"} title="Collapse" >
                         <span className="icon">

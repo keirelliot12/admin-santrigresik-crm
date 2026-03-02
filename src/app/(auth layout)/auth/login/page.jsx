@@ -2,8 +2,9 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Button, Col, Container, Form, InputGroup, Row } from 'react-bootstrap';
+import { Button, Col, Container, Form, InputGroup, Row, Alert } from 'react-bootstrap';
 import { ExternalLink } from 'react-feather';
+import { signIn } from 'next-auth/react';
 import { useTheme } from '@/layout/theme-provider/theme-provider';
 
 //Images
@@ -13,14 +14,32 @@ import logoutImg from '@/assets/img/macaroni-logged-out.png';
 import { useRouter } from 'next/navigation';
 
 const Login = () => {
-    const [userName, setUserName] = useState("");
+    const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
+    const [error, setError] = useState("");
+    const [loading, setLoading] = useState(false);
 
     const router = useRouter();
-    const handleSubmit = (e) => {
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        router.push("/");
+        setLoading(true);
+        setError("");
+        
+        const res = await signIn("credentials", {
+            email: email,
+            password: password,
+            redirect: false,
+        });
+
+        if (res?.error) {
+            setError("Email atau Password salah!");
+            setLoading(false);
+        } else {
+            router.push("/dashboard");
+            router.refresh();
+        }
     }
 
     const { theme } = useTheme();
@@ -37,19 +56,26 @@ const Login = () => {
                                         {theme === "light" ? <Image className="brand-img d-inline-block" src={jampackImg} alt="brand" /> : <Image className="brand-img d-inline-block" src={jampackImgDark} alt="brand" />}
                                     </Link>
                                 </div>
-                                <Form className="w-100" onSubmit={e => handleSubmit(e)} >
+                                <Form className="w-100" onSubmit={handleSubmit} >
                                     <Row>
                                         <Col xl={7} sm={10} className="mx-auto">
                                             <div className="text-center mb-4">
-                                                <h4>Sign in to your account</h4>
-                                                <p>There are many variations of passages of Lorem Ipsum available, in some form, by injected humour</p>
+                                                <h4>Sign in to SantriGresik CRM</h4>
+                                                <p>Sistem Manajemen Hubungan Pelanggan & Task Internal SantriGresik.id</p>
                                             </div>
+
+                                            {error && (
+                                                <Alert variant="danger" className="py-2 text-center">
+                                                    {error}
+                                                </Alert>
+                                            )}
+
                                             <Row className="gx-3">
                                                 <Col as={Form.Group} lg={12} className="mb-3" >
                                                     <div className="form-label-group">
-                                                        <Form.Label>User Name</Form.Label>
+                                                        <Form.Label>Email Address</Form.Label>
                                                     </div>
-                                                    <Form.Control placeholder="Enter username or email ID" type="text" value={userName} onChange={e => setUserName(e.target.value)} />
+                                                    <Form.Control required placeholder="admin@santrigresik.id" type="email" value={email} onChange={e => setEmail(e.target.value)} />
                                                 </Col>
                                                 <Col as={Form.Group} lg={12} className="mb-3" >
                                                     <div className="form-label-group">
@@ -58,33 +84,19 @@ const Login = () => {
                                                     </div>
                                                     <InputGroup className="password-check">
                                                         <span className="input-affix-wrapper affix-wth-text">
-                                                            <Form.Control placeholder="Enter your password" value={password} onChange={e => setPassword(e.target.value)} type={showPassword ? "text" : "password"} />
-                                                            <Link href="#" className="input-suffix text-primary text-uppercase fs-8 fw-medium" onClick={() => setShowPassword(!showPassword)} >
-                                                                {showPassword
-                                                                    ?
-                                                                    <span>Hide</span>
-                                                                    :
-                                                                    <span>Show</span>
-                                                                }
+                                                            <Form.Control required placeholder="Enter your password" value={password} onChange={e => setPassword(e.target.value)} type={showPassword ? "text" : "password"} />
+                                                            <Link href="#" className="input-suffix text-primary text-uppercase fs-8 fw-medium" onClick={(e) => { e.preventDefault(); setShowPassword(!showPassword); }} >
+                                                                {showPassword ? <span>Hide</span> : <span>Show</span>}
                                                             </Link>
                                                         </span>
                                                     </InputGroup>
                                                 </Col>
                                             </Row>
-                                            <div className="d-flex justify-content-center">
-                                                <Form.Check id="logged_in" className="form-check-sm mb-3" >
-                                                    <Form.Check.Input type="checkbox" defaultChecked />
-                                                    <Form.Check.Label className="text-muted fs-7">Keep me logged in</Form.Check.Label>
-                                                </Form.Check>
-                                            </div>
-                                            <Button variant="primary" type="submit" className="btn-uppercase btn-block">Login</Button>
-                                            <p className="p-xs mt-2 text-center">New to Jampack? <Link href="#"><u>Create new account</u></Link></p>
-                                            <Link href="#" className="d-block extr-link text-center mt-4">
-                                                <span className="feather-icon">
-                                                    <ExternalLink />
-                                                </span>
-                                                <u className="text-muted">Send feedback to our help forum</u>
-                                            </Link>
+                                            
+                                            <Button variant="primary" type="submit" disabled={loading} className="btn-uppercase btn-block mt-4">
+                                                {loading ? "Logging in..." : "Login"}
+                                            </Button>
+                                            
                                         </Col>
                                     </Row>
                                 </Form>
@@ -94,7 +106,7 @@ const Login = () => {
                                 <Container fluid as="footer" className="footer">
                                     <Row>
                                         <div className="col-xl-8 text-center">
-                                            <p className="footer-text pb-0"><span className="copy-text">Jampack © {new Date().getFullYear()} All rights reserved.</span> <a href="#some" target="_blank">Privacy Policy</a><span className="footer-link-sep">|</span><a href="#some" target="_blank">T&amp;C</a><span className="footer-link-sep">|</span><a href="#some" target="_blank">System Status</a></p>
+                                            <p className="footer-text pb-0"><span className="copy-text">SantriGresik © {new Date().getFullYear()} All rights reserved.</span></p>
                                         </div>
                                     </Row>
                                 </Container>
@@ -104,14 +116,12 @@ const Login = () => {
                             <div className="auth-content flex-column text-center py-8">
                                 <Row>
                                     <Col xxl={7} xl={8} lg={11} className="mx-auto">
-                                        <h2 className="mb-4">Meet all new Pro Jampack 2.0</h2>
-                                        <p>There are many variations of passages of Lorem Ipsum available, passages of Lorem Ipsum available, in some form, by injected.</p>
-                                        <Button variant="flush-primary" className="btn-uppercase mt-2">Take Tour</Button>
+                                        <h2 className="mb-4">Internal CRM System</h2>
+                                        <p>Manage leads, contacts, tasks, and communications securely and efficiently.</p>
                                     </Col>
                                 </Row>
                                 <Image src={logoutImg} className="img-fluid w-sm-50 mt-7" alt="login" />
                             </div>
-                            <p className="p-xs credit-text opacity-55">All illustration are powered by <Link href="https://icons8.com/ouch/" target="_blank" rel="noreferrer" className="text-light"><u>Icons8</u></Link></p>
                         </Col>
                     </Row>
                 </Container>

@@ -8,7 +8,7 @@ import HkInlineEdit from '@/components/@hk-editable-component/HkInlineEdit';
 import HkDropZone from '@/components/@hk-drop-zone/HkDropZone';
 import HkSimpleCollapse from '@/components/@hk-collapse/@hk-simple-collapse';
 
-const Body = () => {
+const Body = ({ onInvoiceUpdate }) => {
     const [editInfo, setEditInfo] = useState(false);
     const [addNewClient, setAddNewClient] = useState(false);
     const [subTotal, setSubTotal] = useState(0);
@@ -120,7 +120,8 @@ const Body = () => {
             setGrossTotal(subTotal - extraDiscount.discValue);
         }
 
-    }, [itemList, subTotal, extraDiscount])
+        if (onInvoiceUpdate) onInvoiceUpdate({ amount: grossTotal, items: itemList.map(item => ({ description: item.title, quantity: Number(item.quantity), price: Number(item.price) })) });
+}, [itemList, subTotal, extraDiscount, grossTotal, onInvoiceUpdate])
 
     //update T&C
     const updateTC = index => e => {

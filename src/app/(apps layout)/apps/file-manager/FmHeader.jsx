@@ -64,12 +64,29 @@ const FmHeader = ({ toggleSidebar, showSidebar, showInfo, toggleInfo }) => {
                     <HkTooltip placement={states.layoutState.topNavCollapse ? "bottom" : "top"} title="Add New Folder">
                         <span className="icon">
                             <span className="feather-icon">
-                                <FolderPlus />
+                                <FolderPlus onClick={async () => {
+                                const folderName = prompt("Enter folder name:");
+                                if(folderName){
+                                    const formData = new FormData();
+                                    formData.append("action", "CREATE_FOLDER");
+                                    formData.append("name", folderName);
+                                    const res = await fetch("/api/files", { method: "POST", body: formData });
+                                    if(res.ok) window.location.reload();
+                                }
+                            }} />
                             </span>
                         </span>
                     </HkTooltip>
                 </Button>
-                <Button as="a" variant="flush-dark" className="btn-icon btn-rounded btn-file flush-soft-hover  d-md-inline-block d-none">
+                <Button as="label" variant="flush-dark" className="btn-icon btn-rounded btn-file flush-soft-hover d-md-inline-block d-none" style={{cursor: "pointer"}}>
+                    <input type="file" style={{display: "none"}} onChange={async (e) => {
+                        const file = e.target.files[0];
+                        if(!file) return;
+                        const formData = new FormData();
+                        formData.append("file", file);
+                        const res = await fetch("/api/files", { method: "POST", body: formData });
+                        if(res.ok) window.location.reload();
+                    }} />
                     <HkTooltip placement={states.layoutState.topNavCollapse ? "bottom" : "top"} title="Upload">
                         <span className="icon">
                             <span className="feather-icon">

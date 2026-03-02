@@ -1,64 +1,124 @@
-import { useState } from 'react'
-import { Button, Col, Form, Modal, Row } from 'react-bootstrap';
+import { useState, useEffect } from 'react';
+import { Button, Col, Form, Modal, Row, Spinner, Alert } from 'react-bootstrap';
 import PerfectScrollbar from 'react-perfect-scrollbar';
 import { DATASET } from './KanbanDatas';
 import DragDropCards from './DragDropCards';
 import { nanoid } from 'nanoid';
 
 const Board = () => {
-    // eslint-disable-next-line no-unused-vars
     const [dataset, setDataset] = useState(DATASET);
-
     const [tasks, setTasks] = useState(dataset.tasks);
     const [cards, setCards] = useState(dataset.cards);
     const [cardOrder, setCardOrder] = useState(dataset.cardOrder);
 
     const [addNewBoard, setAddNewBoard] = useState(false);
     const [newBoardName, setNewBoardName] = useState("");
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
+    // Fetch Initial Data
+    useEffect(() => {
+        const fetchKanban = async () => {
+            try {
+                const res = await fetch('/api/kanban');
+                if (!res.ok) throw new Error('Failed to fetch Kanban boards');
+                const boards = await res.json();
+                
+                // If Database is empty, fallback to Jampack's DATASET dummy to maintain UI structure visually
+                if (boards.length === 0) {
+                    setLoading(false);
+                    return;
+                }
 
-    const onAddNewCard = () => {
-        const newCard = {
-            id: "card-" + nanoid(),
-            title: newBoardName,
-            taskIds: []
+                // Format DB schema into Jampack's required object structure
+                const dbTasks = {};
+                const dbCards = {};
+                const dbCardOrder = [];
+
+                boards.forEach(board => {
+                    dbCardOrder.push(board.id);
+                    dbCards[board.id] = {
+                        id: board.id,
+                        title: board.title,
+                        taskIds: board.tasks.map(t => t.id)
+                    };
+
+                    board.tasks.forEach(task => {
+                        dbTasks[task.id] = {
+                            id: task.id,
+                            Task_Name: task.title,
+                            Footer: false
+                        };
+                    });
+                });
+
+                setTasks(dbTasks);
+                setCards(dbCards);
+                setCardOrder(dbCardOrder);
+
+            } catch (err) {
+                setError(err.message);
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
         };
-        const newCardOrder = Array.from(cardOrder);
-        newCardOrder.push(newCard.id);
-        setCards({
-            ...cards,
-            [newCard.id]: newCard
-        });
-        setCardOrder(newCardOrder);
-        setNewBoardName("")
-        setAddNewBoard(false);
+
+        fetchKanban();
+    }, []);
+
+    const onAddNewCard = async () => {
+        if (!newBoardName.trim()) return;
+
+        try {
+            const res = await fetch('/api/kanban', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: "ADD_BOARD",
+                    payload: { title: newBoardName, order: cardOrder.length }
+                })
+            });
+
+            if (res.ok) {
+                const createdBoard = await res.json();
+                
+                // Update local state to reflect DB id
+                const newCardOrder = Array.from(cardOrder);
+                newCardOrder.push(createdBoard.id);
+                setCards({
+                    ...cards,
+                    [createdBoard.id]: { id: createdBoard.id, title: createdBoard.title, taskIds: [] }
+                });
+                setCardOrder(newCardOrder);
+                setNewBoardName("");
+                setAddNewBoard(false);
+            } else {
+                alert("Failed to create board.");
+            }
+        } catch (err) {
+            console.error("ADD BOARD ERROR", err);
+        }
     };
 
+    if (loading) {
+        return (
+            <div className="taskboard-body d-flex justify-content-center align-items-center" style={{ height: "100vh" }}>
+                <Spinner animation="border" variant="primary" />
+            </div>
+        )
+    }
 
     return (
         <>
             <div className="taskboard-body">
+                {error && <Alert variant="warning" className="m-3">{error} (Showing sample data instead)</Alert>}
                 <div>
-                    <div className="taskbar-toolbar">
-                        <div className="d-flex align-items-center flex-grow-1 flex-lg-grow-0">
-                            <Button variant="soft-primary" className="flex-shrink-0 btn-add-newlist me-4" onClick={() => setAddNewBoard(!addNewBoard)} >Create New</Button>
-                            <Form.Check
-                                type="switch"
-                                id="custom-switch"
-                                label="Show description"
-                                className="ms-auto"
-                                defaultChecked
-                            />
-                        </div>
-                        <Form role="search" className="d-lg-flex d-none">
-                            <Form.Control type="text" placeholder="Search in conversation" />
-                        </Form>
-                    </div>
                     <PerfectScrollbar className="tasklist-scroll position-relative">
-                        <div id="tasklist_wrap">
+                        <div id="board" className="tasklist-wrap">
                             <DragDropCards
-                                cards={cards}
                                 tasks={tasks}
+                                cards={cards}
                                 cardOrder={cardOrder}
                                 setCards={setCards}
                                 setTasks={setTasks}
@@ -99,4 +159,4 @@ const Board = () => {
     )
 }
 
-export default Board
+export default Board;

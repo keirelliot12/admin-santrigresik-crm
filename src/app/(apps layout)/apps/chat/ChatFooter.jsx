@@ -5,7 +5,7 @@ import { Button, Dropdown, Form, InputGroup } from 'react-bootstrap';
 import { ArrowRight, Share, Smile } from 'react-feather';
 
 const ChatFooter = () => {
-    const [message, setMessage] = useState([]);
+    const [message, setMessage] = useState("");
     const { dispatch } = useGlobalStateContext();
 
     //Get current system time
@@ -16,37 +16,46 @@ const ChatFooter = () => {
     });
 
     //Send a new messages
-    const sendMessage = () => {
-        if (message.length > 0) {
-
+    const sendMessage = async () => {
+        if (message.trim().length > 0) {
+            
+            // Dispatch locally for instant UI update
             dispatch({ type: "send_msg", msg: { text: message, time: msgTitme, types: "sent" } });
 
-            // default response msg
-            setTimeout(() => {
-                dispatch({ type: "send_msg", msg: { text: "What are you saying?", time: msgTitme, types: "received" } });
-            }, 800);
+            try {
+                const res = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content: message, receiverId: "GLOBAL" })
+                });
+
+                if (!res.ok) {
+                    console.error("Failed to save chat");
+                }
+            } catch (err) {
+                console.error(err);
+            }
+
+            setMessage("");
         }
         else {
             alert("Please type something!");
         }
-
     }
+
     const handleClick = () => {
         sendMessage();
-        setMessage("");
     }
     const onKeyDown = (e) => {
         if (e.keyCode === 13) {
             sendMessage();
-            setMessage("");
         }
     }
-
 
     return (
         <footer className="chat-footer">
             <Dropdown>
-                <Dropdown.Toggle variant="flush-dark" className="btn-icon btn-rounded flush-soft-hover no-caret flex-shrink-0">
+                <Dropdown.Toggle variant="flush-dark" className="btn-icon btn-rounded flush-soft-hover no-caret dropdown-toggle">
                     <span className="icon">
                         <span className="feather-icon">
                             <Share />
@@ -80,7 +89,7 @@ const ChatFooter = () => {
                     </Dropdown.Item>
                     <Dropdown.Item>
                         <div className="d-flex align-items-center">
-                            <div className="avatar avatar-icon avatar-xs avatar-soft-success avatar-rounded me-3">
+                            <div className="avatar avatar-icon avatar-xs avatar-soft-danger avatar-rounded me-3">
                                 <span className="initial-wrap">
                                     <i className="ri-map-pin-line" />
                                 </span>

@@ -11,7 +11,6 @@ import interactionPlugin from "@fullcalendar/interaction";
 import moment from 'moment';
 import { useWindowHeight } from '@react-hook/window-size';
 import CalendarSidebar from './CalendarSidebar';
-import { CalendarEvents } from './Events';
 import EventsDrawer from './EventsDrawer';
 import CreateNewEvent from './CreateNewEvent';
 import 'bootstrap-icons/font/bootstrap-icons.css';
@@ -36,9 +35,38 @@ const Calendar = () => {
     const [date, setDate] = useState(curYear + '-' + curMonth + '-07');
     const [currentView, setCurrentView] = useState("month");
 
-    useEffect(() => {
-        const calApi = calendarRef.current.getApi();
+    const [events, setEvents] = useState([]);
 
+    const fetchEvents = async () => {
+        try {
+            const res = await fetch('/api/calendar');
+            if (res.ok) {
+                const data = await res.json();
+                
+                const formattedEvents = data.map(evt => ({
+                    id: evt.id,
+                    title: evt.title,
+                    start: evt.start,
+                    end: evt.end,
+                    allDay: evt.allDay,
+                    backgroundColor: evt.calendar === "Work" ? "#298DFF" : (evt.calendar === "Personal" ? "#da82f8" : "#FFC400"),
+                    borderColor: evt.calendar === "Work" ? "#298DFF" : (evt.calendar === "Personal" ? "#da82f8" : "#FFC400"),
+                    extendedProps: {
+                        description: evt.description,
+                        calendar: evt.calendar
+                    }
+                }));
+
+                setEvents(formattedEvents);
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    useEffect(() => {
+        fetchEvents();
+        const calApi = calendarRef.current?.getApi();
         if (calApi) {
             setDate(moment(calApi.getDate()));
         }
@@ -114,6 +142,7 @@ const Calendar = () => {
                                             <FontAwesomeIcon icon={faChevronRight} size="sm" />
                                         </span>
                                     </Button>
+                                    <Button variant="outline-light ms-3" onClick={fetchEvents} >Refresh</Button>
                                 </div>
                                 <div className="d-flex flex-1 justify-content-center">
                                     <h4 className="mb-0">{moment(date).format('MMMM' + ' ' + 'YYYY')}</h4>
@@ -150,7 +179,7 @@ const Calendar = () => {
                                 windowResizeDelay={500}
                                 droppable={true}
                                 editable={true}
-                                events={CalendarEvents}
+                                events={events}
                                 eventClick={function (info) {
                                     // console.log(info);
                                     setTargetEvent(info.event);
@@ -168,7 +197,7 @@ const Calendar = () => {
             <EventsDrawer show={showEventInfo} info={eventTitle} event={targetEvent} onClose={() => setShowEventInfo(!showEventInfo)} />
 
             {/* New Event */}
-            <CreateNewEvent calendarRef={calendarRef} show={createEvent} hide={() => setCreateEvent(!createEvent)} />
+            <CreateNewEvent calendarRef={calendarRef} show={createEvent} hide={() => { setCreateEvent(!createEvent); fetchEvents(); }} />
         </>
 
     )

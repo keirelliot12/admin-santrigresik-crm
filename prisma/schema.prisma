@@ -1,11 +1,28 @@
+// ---------------------------------------------------------------------------
+// BOUNDARY CONSTRAINT
+//
+// This database is for NextAuth session management only.
+// The auth-safe models are: User, Account, Session, VerificationToken.
+//
+// Business data (clients, subscriptions, invoices, tickets, etc.) MUST live
+// in binkhozin/santrigresik-saas. Use src/lib/api-client.ts to fetch it.
+//
+// DO NOT add new models here for business concerns.
+// See docs/PRISMA_AUDIT.md for the full audit and migration plan.
+// ---------------------------------------------------------------------------
+
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "sqlite"
-  url      = "file:./dev.db"
+  url      = env("DATABASE_URL")
 }
+
+// ---------------------------------------------------------------------------
+// AUTH-ONLY MODELS — safe to keep in this repo
+// ---------------------------------------------------------------------------
 
 model User {
   id            String    @id @default(cuid())
@@ -61,6 +78,18 @@ model VerificationToken {
 
   @@unique([identifier, token])
 }
+
+// ---------------------------------------------------------------------------
+// DEPRECATED BUSINESS MODELS
+//
+// These models store business data that belongs in binkhozin/santrigresik-saas.
+// They are scheduled for removal once the corresponding local API routes are
+// migrated to proxy calls via src/lib/api-client.ts.
+//
+// DO NOT add new fields or relationships to these models.
+// DO NOT create new business models here.
+// See docs/PRISMA_AUDIT.md — Phase B/C for the migration plan.
+// ---------------------------------------------------------------------------
 
 model Contact {
   id        String    @id @default(cuid())

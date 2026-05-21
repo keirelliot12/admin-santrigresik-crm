@@ -12,6 +12,9 @@
  */
 
 import axios from 'axios';
+import type { AxiosRequestConfig } from 'axios';
+import type { ApiResponse } from './types';
+import { ApiError } from './types';
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1';
@@ -74,3 +77,91 @@ apiClient.interceptors.response.use(
 );
 
 export default apiClient;
+
+// ============================================================
+// Typed API helpers — wrap ApiResponse<T> and handle errors
+// ============================================================
+
+function toApiError(error: unknown): ApiError {
+  if (error instanceof ApiError) return error;
+  if (axios.isAxiosError(error)) {
+    const status = error.response?.status || 0;
+    const data = error.response?.data as Record<string, unknown> | undefined;
+    const message = (data?.message as string) || error.message;
+    const errors = data?.errors as Record<string, string[]> | undefined;
+    return new ApiError(message, status, errors);
+  }
+  if (error instanceof Error) {
+    return new ApiError(error.message, 0);
+  }
+  return new ApiError('Unknown error', 0);
+}
+
+export async function apiGet<T>(
+  url: string,
+  config?: AxiosRequestConfig
+): Promise<T> {
+  try {
+    const { data } = await apiClient.get<ApiResponse<T>>(url, config);
+    if (!data.success) {
+      throw new ApiError(data.message, 422, data.errors);
+    }
+    return data.data;
+  } catch (error) {
+    throw toApiError(error);
+  }
+}
+
+export async function apiPost<T>(
+  url: string,
+  body?: unknown,
+  config?: AxiosRequestConfig
+): Promise<T> {
+  try {
+    const { data } = await apiClient.post<ApiResponse<T>>(url, body, config);
+    if (!data.success) {
+      throw new ApiError(data.message, 422, data.errors);
+    }
+    return data.data;
+  } catch (error) {
+    throw toApiError(error);
+  }
+}
+
+export async function apiPut<T>(
+  url: string,
+  body?: unknown,
+  config?: AxiosRequestConfig
+): Promise<T> {
+  try {
+    const { data } = await apiClient.put<ApiResponse<T>>(url, body, config);
+    if (!data.success) {
+      throw new ApiError(data.message, 422, data.errors);
+    }
+    return data.data;
+  } catch (error) {
+    throw toApiError(error);
+  }
+}
+
+export async function apiDelete<T = void>(
+  url: string,
+  config?: AxiosRequestConfig
+): Promise<T> {
+  try {
+    const { data } = await apiClient.delete<ApiResponse<T>>(url, config);
+    if (!data.success) {
+      throw new ApiError(data.message, 422, data.errors);
+    }
+    return data.data;
+  } catch (error) {
+    throw toApiError(error);
+  }
+}
+
+export function extractApiData<T>(response: ApiResponse<T>): T {
+  if (!response.success) {
+    throw new ApiError(response.message, 422, response.errors);
+  }
+  return response.data;
+}

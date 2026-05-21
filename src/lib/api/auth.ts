@@ -14,7 +14,8 @@
  */
 
 import apiClient from './client';
-import type { AuthUser, LoginResponse } from './types';
+import type { AuthUser, LoginResponse, ApiResponse } from './types';
+import { ApiError } from './types';
 
 export const authService = {
   /**
@@ -26,15 +27,21 @@ export const authService = {
    * @returns LoginResponse with token and user data
    */
   async login(email: string, password: string): Promise<LoginResponse> {
-    const { data } = await apiClient.post<LoginResponse>('/auth/login', {
-      email,
-      password,
-      device_name:
-        typeof navigator !== 'undefined'
-          ? navigator.userAgent.slice(0, 120)
-          : 'Unknown',
-    });
-    return data;
+    const { data } = await apiClient.post<ApiResponse<LoginResponse>>(
+      '/auth/login',
+      {
+        email,
+        password,
+        device_name:
+          typeof navigator !== 'undefined'
+            ? navigator.userAgent.slice(0, 120)
+            : 'Unknown',
+      }
+    );
+    if (!data.success) {
+      throw new ApiError(data.message, 422, data.errors);
+    }
+    return data.data;
   },
 
   /**
@@ -59,7 +66,10 @@ export const authService = {
    * @returns AuthUser object
    */
   async getMe(): Promise<AuthUser> {
-    const { data } = await apiClient.get<{ data: AuthUser }>('/me');
+    const { data } = await apiClient.get<ApiResponse<AuthUser>>('/me');
+    if (!data.success) {
+      throw new ApiError(data.message, 422, data.errors);
+    }
     return data.data;
   },
 

@@ -3,11 +3,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button, Col, Container, Form, InputGroup, Row, Alert } from 'react-bootstrap';
-import { ExternalLink } from 'react-feather';
 import { signIn } from 'next-auth/react';
 import { useTheme } from '@/layout/theme-provider/theme-provider';
-import { authService } from '@/lib/api/auth';
-import { ApiError } from '@/lib/api/types';
 
 //Images
 import jampackImg from '@/assets/img/logo-light.svg';
@@ -30,43 +27,27 @@ const Login = () => {
         setError("");
 
         try {
-            const result = await authService.login(email, password);
-            authService.storeAuth(result.token, result.user);
+            // NextAuth signIn calls authorize() which hits Laravel backend
+            const res = await signIn("credentials", {
+                email,
+                password,
+                redirect: false,
+            });
 
-            // Set cookie for middleware auth check
-            document.cookie = `auth_token=${result.token}; path=/; max-age=86400; SameSite=Lax`;
-
-            // Try NextAuth session for components that use useSession
-            try {
-                await signIn("credentials", { email, password, redirect: false });
-            } catch {
-                // Non-critical - API cookie handles middleware
+            if (res?.error) {
+                setError("Email atau Password salah!");
+            } else if (res?.ok) {
+                // Set cookie for middleware auth check
+                // Use NextAuth session token as auth marker
+                const sessionToken = res.url
+                    ? new URL(res.url).searchParams.get('callbackUrl')
+                    : null;
+                document.cookie = `auth_token=nextauth; path=/; max-age=86400; SameSite=Lax`;
+                router.push("/dashboard");
+                router.refresh();
             }
-
-            router.push("/dashboard");
-            router.refresh();
         } catch (err) {
-            if (err instanceof ApiError) {
-                if (err.status === 422) {
-                    setError("Email atau Password salah.");
-                } else {
-                    setError(err.message || "Terjadi kesalahan. Silakan coba lagi.");
-                }
-            } else {
-                // Network error or API unavailable - fallback to NextAuth
-                const res = await signIn("credentials", {
-                    email: email,
-                    password: password,
-                    redirect: false,
-                });
-
-                if (res?.error) {
-                    setError("Email atau Password salah!");
-                } else {
-                    router.push("/dashboard");
-                    router.refresh();
-                }
-            }
+            setError("Terjadi kesalahan. Silakan coba lagi.");
         }
 
         setLoading(false);

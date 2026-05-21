@@ -88,7 +88,9 @@ function toApiError(error: unknown): ApiError {
     const status = error.response?.status || 0;
     const data = error.response?.data as Record<string, unknown> | undefined;
     const message = (data?.message as string) || error.message;
-    const errors = data?.errors as Record<string, string[]> | undefined;
+    const errors =
+      (data?.errors as Record<string, string[]> | undefined) ??
+      (data?.details as Record<string, string[]> | undefined);
     return new ApiError(message, status, errors);
   }
   if (error instanceof Error) {
@@ -97,16 +99,27 @@ function toApiError(error: unknown): ApiError {
   return new ApiError('Unknown error', 0);
 }
 
+function unwrapResponse<T>(data: unknown): T {
+  if (typeof data === 'object' && data !== null && 'success' in data) {
+    const wrapped = data as { success: boolean; message: string; data: T; errors?: Record<string, string[]> };
+    if (!wrapped.success) {
+      throw new ApiError(wrapped.message, 422, wrapped.errors);
+    }
+    return wrapped.data;
+  }
+  if (typeof data === 'object' && data !== null && 'data' in data) {
+    return (data as { data: T }).data;
+  }
+  return data as T;
+}
+
 export async function apiGet<T>(
   url: string,
   config?: AxiosRequestConfig
 ): Promise<T> {
   try {
-    const { data } = await apiClient.get<ApiResponse<T>>(url, config);
-    if (!data.success) {
-      throw new ApiError(data.message, 422, data.errors);
-    }
-    return data.data;
+    const { data } = await apiClient.get(url, config);
+    return unwrapResponse<T>(data);
   } catch (error) {
     throw toApiError(error);
   }
@@ -118,11 +131,8 @@ export async function apiPost<T>(
   config?: AxiosRequestConfig
 ): Promise<T> {
   try {
-    const { data } = await apiClient.post<ApiResponse<T>>(url, body, config);
-    if (!data.success) {
-      throw new ApiError(data.message, 422, data.errors);
-    }
-    return data.data;
+    const { data } = await apiClient.post(url, body, config);
+    return unwrapResponse<T>(data);
   } catch (error) {
     throw toApiError(error);
   }
@@ -134,11 +144,8 @@ export async function apiPut<T>(
   config?: AxiosRequestConfig
 ): Promise<T> {
   try {
-    const { data } = await apiClient.put<ApiResponse<T>>(url, body, config);
-    if (!data.success) {
-      throw new ApiError(data.message, 422, data.errors);
-    }
-    return data.data;
+    const { data } = await apiClient.put(url, body, config);
+    return unwrapResponse<T>(data);
   } catch (error) {
     throw toApiError(error);
   }
@@ -149,11 +156,8 @@ export async function apiDelete<T = void>(
   config?: AxiosRequestConfig
 ): Promise<T> {
   try {
-    const { data } = await apiClient.delete<ApiResponse<T>>(url, config);
-    if (!data.success) {
-      throw new ApiError(data.message, 422, data.errors);
-    }
-    return data.data;
+    const { data } = await apiClient.delete(url, config);
+    return unwrapResponse<T>(data);
   } catch (error) {
     throw toApiError(error);
   }

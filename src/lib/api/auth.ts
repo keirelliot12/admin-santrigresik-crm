@@ -14,7 +14,7 @@
  */
 
 import apiClient from './client';
-import type { AuthUser, LoginResponse, ApiResponse } from './types';
+import type { AuthUser, LoginResponse } from './types';
 import { ApiError } from './types';
 
 export const authService = {
@@ -27,7 +27,7 @@ export const authService = {
    * @returns LoginResponse with token and user data
    */
   async login(email: string, password: string): Promise<LoginResponse> {
-    const { data } = await apiClient.post<ApiResponse<LoginResponse>>(
+    const { data } = await apiClient.post(
       '/auth/login',
       {
         email,
@@ -38,10 +38,16 @@ export const authService = {
             : 'Unknown',
       }
     );
-    if (!data.success) {
-      throw new ApiError(data.message, 422, data.errors);
+    if (typeof data === 'object' && data !== null && 'success' in data) {
+      if (!data.success) {
+        throw new ApiError(data.message, 422, data.errors);
+      }
+      return data.data;
     }
-    return data.data;
+    if (typeof data === 'object' && data !== null && 'data' in data) {
+      return data.data;
+    }
+    return data;
   },
 
   /**
@@ -66,11 +72,17 @@ export const authService = {
    * @returns AuthUser object
    */
   async getMe(): Promise<AuthUser> {
-    const { data } = await apiClient.get<ApiResponse<AuthUser>>('/me');
-    if (!data.success) {
-      throw new ApiError(data.message, 422, data.errors);
+    const { data } = await apiClient.get('/me');
+    if (typeof data === 'object' && data !== null && 'success' in data) {
+      if (!data.success) {
+        throw new ApiError(data.message, 422, data.errors);
+      }
+      return data.data;
     }
-    return data.data;
+    if (typeof data === 'object' && data !== null && 'data' in data) {
+      return data.data;
+    }
+    return data;
   },
 
   /**

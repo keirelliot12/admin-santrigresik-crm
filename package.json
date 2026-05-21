@@ -28,6 +28,7 @@
     "@tinymce/tinymce-react": "^6.3.0",
     "animate.css": "^4.1.1",
     "apexcharts": "^5.3.4",
+    "axios": "^1.16.1",
     "bcryptjs": "^3.0.3",
     "bootstrap": "^5.3.8",
     "bootstrap-daterangepicker": "^3.1.0",

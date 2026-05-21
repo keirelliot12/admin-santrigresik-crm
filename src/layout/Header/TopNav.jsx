@@ -5,6 +5,7 @@ import SimpleBar from 'simplebar-react';
 import { AlignLeft, Bell, Calendar, CheckSquare, Clock, CreditCard, Inbox, Plus, Search, Settings, Tag } from 'react-feather';
 import { Button, Container, Dropdown, Form, InputGroup, Nav, Navbar } from "react-bootstrap";
 import { signOut } from "next-auth/react";
+import { authService } from "@/lib/api/auth";
 import classNames from 'classnames';
 import { motion } from 'framer-motion';
 import HkBadge from '@/components/@hk-badge/@hk-badge';
@@ -456,7 +457,7 @@ const TopNav = () => {
                                         Terms &amp; Conditions
                                     </Dropdown.Item>
                                     <Dropdown.Item>
-                                        Help &amp; Support</Dropdown.Item><Dropdown.Divider as="div" /><Dropdown.Item onClick={() => signOut({ callbackUrl: "/auth/login" })} className="text-danger">Log Out
+                                        Help &amp; Support</Dropdown.Item><Dropdown.Divider as="div" /><Dropdown.Item onClick={() => { authService.logout(); signOut({ callbackUrl: "/auth/login" }); }} className="text-danger">Log Out
                                     </Dropdown.Item>
                                 </Dropdown.Menu>
                             </Dropdown>

@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import { Button, Card, Col, Container, Form, InputGroup, Row, Alert } from 'react-bootstrap';
 import { Eye, EyeOff } from 'react-feather';
 import { signIn } from 'next-auth/react';
+import { authService } from '@/lib/api/auth';
+import { ApiError } from '@/lib/api/types';
 import CommonFooter1 from '../../CommonFooter1';
 
 //Image
@@ -26,20 +28,48 @@ const LoginClassic = () => {
         e.preventDefault();
         setLoading(true);
         setError("");
-        
-        const res = await signIn("credentials", {
-            email: email,
-            password: password,
-            redirect: false,
-        });
 
-        if (res?.error) {
-            setError("Email atau Password salah!");
-            setLoading(false);
-        } else {
+        try {
+            const result = await authService.login(email, password);
+            authService.storeAuth(result.token, result.user);
+
+            // Set cookie for middleware auth check
+            document.cookie = `auth_token=${result.token}; path=/; max-age=86400; SameSite=Lax`;
+
+            // Try NextAuth session for components that use useSession
+            try {
+                await signIn("credentials", { email, password, redirect: false });
+            } catch {
+                // Non-critical - API cookie handles middleware
+            }
+
             router.push("/dashboard");
             router.refresh();
+        } catch (err) {
+            if (err instanceof ApiError) {
+                if (err.status === 422) {
+                    setError("Email atau Password salah.");
+                } else {
+                    setError(err.message || "Terjadi kesalahan. Silakan coba lagi.");
+                }
+            } else {
+                // Network error or API unavailable - fallback to NextAuth
+                const res = await signIn("credentials", {
+                    email: email,
+                    password: password,
+                    redirect: false,
+                });
+
+                if (res?.error) {
+                    setError("Email atau Password salah!");
+                } else {
+                    router.push("/dashboard");
+                    router.refresh();
+                }
+            }
         }
+
+        setLoading(false);
     }
 
     const { theme } = useTheme();

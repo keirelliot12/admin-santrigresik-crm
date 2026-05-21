@@ -4,7 +4,8 @@ import type { NextRequest } from "next/server";
 
 export async function middleware(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-  const isAuth = !!token;
+  const apiToken = req.cookies.get("auth_token")?.value;
+  const isAuth = !!token || !!apiToken;
   const isAuthPage = req.nextUrl.pathname.startsWith("/auth") || req.nextUrl.pathname === "/login";
 
   if (isAuthPage) {

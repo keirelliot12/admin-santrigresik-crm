@@ -4,18 +4,18 @@ import type { NextRequest } from "next/server";
 
 export async function middleware(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-  const apiToken = req.cookies.get("auth_token")?.value;
-  const isAuth = !!token || !!apiToken;
-  const isAuthPage = req.nextUrl.pathname.startsWith("/auth") || req.nextUrl.pathname === "/login";
+  const isAuth = !!token;
+  const isAuthPage =
+    req.nextUrl.pathname.startsWith("/auth") ||
+    req.nextUrl.pathname === "/login";
 
-  if (isAuthPage) {
-    if (isAuth) {
-      return NextResponse.redirect(new URL("/dashboard", req.url));
-    }
-    return null;
+  // Logged-in users should not access login pages
+  if (isAuthPage && isAuth) {
+    return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 
-  if (!isAuth && req.nextUrl.pathname !== "/") {
+  // Non-authenticated users should not access protected routes
+  if (!isAuth && !isAuthPage && req.nextUrl.pathname !== "/") {
     return NextResponse.redirect(new URL("/auth/login", req.url));
   }
 
@@ -31,5 +31,7 @@ export const config = {
     "/kanban/:path*",
     "/contact/:path*",
     "/file-manager/:path*",
+    "/auth/:path*",
+    "/login",
   ],
 };

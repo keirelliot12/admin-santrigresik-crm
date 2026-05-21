@@ -38,7 +38,6 @@ const LoginClassic = () => {
             if (res?.error) {
                 setError("Email atau Password salah!");
             } else if (res?.ok) {
-                document.cookie = `auth_token=nextauth; path=/; max-age=86400; SameSite=Lax`;
                 router.push("/dashboard");
                 router.refresh();
             }

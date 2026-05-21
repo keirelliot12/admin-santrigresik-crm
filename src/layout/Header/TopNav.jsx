@@ -457,7 +457,14 @@ const TopNav = () => {
                                         Terms &amp; Conditions
                                     </Dropdown.Item>
                                     <Dropdown.Item>
-                                        Help &amp; Support</Dropdown.Item><Dropdown.Divider as="div" /><Dropdown.Item onClick={() => { authService.logout(); signOut({ callbackUrl: "/auth/login" }); }} className="text-danger">Log Out
+                                        Help &amp; Support</Dropdown.Item><Dropdown.Divider as="div" /><Dropdown.Item onClick={async () => {
+                                            try {
+                                              await authService.logout();
+                                            } catch {
+                                              // Backend logout failed — still clear local session
+                                            }
+                                            signOut({ callbackUrl: "/auth/login" });
+                                          }} className="text-danger">Log Out
                                     </Dropdown.Item>
                                 </Dropdown.Menu>
                             </Dropdown>

@@ -37,12 +37,6 @@ const Login = () => {
             if (res?.error) {
                 setError("Email atau Password salah!");
             } else if (res?.ok) {
-                // Set cookie for middleware auth check
-                // Use NextAuth session token as auth marker
-                const sessionToken = res.url
-                    ? new URL(res.url).searchParams.get('callbackUrl')
-                    : null;
-                document.cookie = `auth_token=nextauth; path=/; max-age=86400; SameSite=Lax`;
                 router.push("/dashboard");
                 router.refresh();
             }
